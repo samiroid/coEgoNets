@@ -73,8 +73,10 @@ def build_coocurrences(docs):
         #count co-occurrences
         K.update(coos)
         if i % 501 == 0:
-            sys.stdout.write("\r > processed {} docs | {} tokens".format(len(docs), total_tokens))
+            sys.stdout.write("\r > processed {}\{} docs | {} tokens".format(i, len(docs), total_tokens))
             sys.stdout.flush()              
+    sys.stdout.write("\r > processed {}\{} docs | {} tokens".format(i, len(docs), total_tokens))
+    sys.stdout.flush()              
     #initialize co-ocurrence (sparse) matrix        
     M = dok_matrix((len(V), len(V)), dtype=int)
     #fill in the matrix with co-occurence counts 

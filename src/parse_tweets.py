@@ -30,7 +30,7 @@ def preprocess(d, hashtags_only=False):
 def parse(path, output, hashtags_only=False, by_year=False):
     data = defaultdict(list)
     with gzip.open(path,"r") as f:        
-        print("[reading docs @ {} | hashtags:{}) | by year:{}]".format(path, 
+        print("[reading docs @ {} | hashtags:{} | by year:{}]".format(path, 
                 str(hashtags_only), str(by_year)))        
         for i,l in enumerate(f):
             try:
