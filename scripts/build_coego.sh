@@ -1,6 +1,6 @@
-DATA_PATH="/Users/samir/Dev/projects/wellness/DATA/txt/2011.txt"
-OUTPUT_PATH="/Users/samir/Dev/projects/wellness/DATA/pkl/2011.pkl"
-TARGET_WORD="#wellness"
-
-python python/main.py -data_path $DATA_PATH -output $OUTPUT_PATH -target_word $TARGET_WORD
+DATA_PATH="/Users/samir/Dev/projects/coEgoNets/DATA/txt/wellness"
+OUTPUT_PATH="/Users/samir/Dev/projects/coEgoNets/DATA/pkl/wellness.zip"
+# TARGET_WORD="#wellness"
+# -target_word $TARGET_WORD
+python src/coegonets.py -data_path $DATA_PATH -output $OUTPUT_PATH --cooc
 
