@@ -57,8 +57,8 @@ class Vocabulary(object):
 def build_coocurrences(docs):            
     K = Counter()
     V = Vocabulary()
-    #add a special token to the vocabulary and to each doc to capture occurrences of singletons
-    V.word2idx(COUNTER_TOKEN)
+    #add a special token to the vocabulary and to each doc to capture occurrences 
+    ctr_idx = V.word2idx(COUNTER_TOKEN)
     total_tokens = 0
     for i,d in enumerate(docs):        
         #convert tokens to indices
@@ -67,12 +67,12 @@ def build_coocurrences(docs):
         t = list(set(t))
         total_tokens+=len(t)  
         #prepend counter token
-        t = [V.word2idx(COUNTER_TOKEN)] + t
+        t = [ctr_idx] + t
         #iterate over token idx combinations        
         coos = ["{},{}".format(co[0],co[1]) for co in itertools.combinations(t,2) ]
         #count co-occurrences
         K.update(coos)
-        if i % 500 == 0:
+        if i % 501 == 0:
             sys.stdout.write("\r > processed {} docs | {} tokens".format(len(docs), total_tokens))
             sys.stdout.flush()              
     #initialize co-ocurrence (sparse) matrix        
@@ -98,12 +98,10 @@ def read_data(path):
 def cmdline_args():
     par = argparse.ArgumentParser(description="COOM")
     par.add_argument('-data_path', type=str, required=True, help='input data')
-    par.add_argument('-output', type=str, help='output path')	
-    par.add_argument('-target_word', type=str, help='target word')	    
-    par.add_argument('-build_coocurrences', '--cooc', action="store_true", help='build co-occurrence matrix')	    
+    par.add_argument('-output', type=str, help='output path')	    
     return par.parse_args()
 
-def save_cooc(data_path, output_path):
+def main(data_path, output_path):
     #ensure output folder exists
     dirname = os.path.dirname(output_path)
     if not os.path.isdir(dirname):
@@ -117,6 +115,5 @@ def save_cooc(data_path, output_path):
     C.to_pickle(output_path)
 
 if __name__ == "__main__":    
-    args = cmdline_args()   
-    if args.cooc:
-        save_cooc(args.data_path, args.output)
+    args = cmdline_args()       
+    main(args.data_path, args.output)
