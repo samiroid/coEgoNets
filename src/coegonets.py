@@ -97,12 +97,20 @@ def build_COOM(docs):
         C[word1,word2] = v
         C[word2,word1] = v    
     print(" > done")
-    return C, V
+    return C, V.vocabulary()
 
 def read_data(path):    
     with open(path, "r") as f:
-        data = [line for line in f]            
+        data = [line.strip("\n") for line in f]            
     return data
+
+def keyword_filter_all(docs, filters):
+    filtered = filter(lambda doc: all(w in doc.split() for w in filters), docs)
+    return list(filtered)
+
+def keyword_filter_any(docs, filters):
+    filtered = filter(lambda doc: any(w in doc.split() for w in filters), docs)
+    return list(filtered)
 
 def cmdline_args():
     par = argparse.ArgumentParser(description="COOM")
@@ -123,7 +131,7 @@ def main(data_path, output_path):
     print("[saving @ {}]".format(output_path))            
     #pickle coocurrence matrix
     with gzip.GzipFile(output_path, "w") as f:
-        pickle.dump([C, V.vocabulary()], f, -1)
+        pickle.dump([C, V], f, -1)
 
 if __name__ == "__main__":    
     args = cmdline_args()       

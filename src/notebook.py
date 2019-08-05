@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import random
 from string import Template
 import html
+import uuid
 
 def top_k(C, k):
     return C["[COUNTS]"].sort_values(ascending=False)[:k]
@@ -26,9 +27,7 @@ def graph(C, words, style='bmh'):
         "edges":[]}
     random.seed(42)
     for i,w in enumerate(words):
-        g["nodes"].append({'label': w,
-                    # 'x': random.randint(0,100),
-                    # 'y': random.randint(0,100),
+        g["nodes"].append({'label': w,                    
                     'x': random.random(),
                     'y': random.random(),
                     'id': words.index(w),
@@ -47,7 +46,10 @@ def graph(C, words, style='bmh'):
 
     return g
 
-def getSigmaGraph(graph_data, html_container_id):
+def sigmaJSGraph(C, words, style='bmh'):
+
+    graph_data = graph(C, words, style)
+    html_container_id = "graph-"+str(uuid.uuid4())
     
     js_text_template = Template('''
     
@@ -76,10 +78,10 @@ s.startForceAtlas2(atlas_conf);
 var force = true;
 svg_display = false;
 
-//setTimeout( function(){
- //    s.stopForceAtlas2();
-//force=false;
-// }, 10000)
+setTimeout( function(){
+     s.stopForceAtlas2();
+force=false;
+ }, 8000)
 
 // Listeners
 document.getElementById('layout').onclick = function() {
@@ -108,7 +110,9 @@ document.getElementById('export').onclick = function() {
 document.getElementById('svg').onclick = function() {
     svg_display = !svg_display
     if(svg_display){
-        document.getElementById("svg_text").innerHTML = s.toSVG({download: false, labels:true, filename: 'mygraph.svg', size: 500})
+        s = s.toSVG({download: false, labels:true, filename: 'mygraph.svg', size: 50})
+        document.getElementById("svg_text").innerHTML = "*** " + s + " ***"
+        alert(s);
         document.getElementById("$container").style.display = "none";
         document.getElementById('svg').innerHTML = "plot"
     }else{
@@ -124,9 +128,9 @@ document.getElementById('svg').onclick = function() {
 <p id="svg_text"></p>
 <br>
 <div id="$container" style="height:500px; position:relative"></div>
-<button id="layout" type="button" style=" background-color:#B22222">stop force</button>
-<button id="svg" type="SVG">snapshot</button>
-<button id="export" type="PNG">export</button>
+<button id="layout" type="button" style=" background-color:#B22222 border-radius: 4px;"> stop force</button>
+<button id="svg" type="SVG" style="border-radius: 4px;">snapshot</button>
+<button id="export" type="PNG" style="border-radius: 4px;">export</button>
 <script> $js_text </script>
 ''')
     js_text = js_text_template.substitute({'graph_data': json.dumps(graph_data),

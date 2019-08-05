@@ -27,20 +27,12 @@ def preprocess(d, hashtags_only=False):
     
     return d
 
-def write_tweets(f, tweets, keyword_filter=None):
-    if keyword_filter:        
-        for tweet in tweets:
-            if keyword_filter in tweet:                
-                f.write("{}\n".format(tweet))
-    else:
-        for tweet in tweets:
-            f.write("{}\n".format(tweet))
 
-def main(path, output, keyword_filter=None, hashtags_only=False, by_year=False):
+def main(path, output, hashtags_only=False, by_year=False):
     data = defaultdict(list)
     with gzip.open(path,"r") as f:        
-        print("[reading docs @ {} | filter: {} | hashtags:{} | by year:{}]".format(path, 
-                repr(keyword_filter), str(hashtags_only), str(by_year)))        
+        print("[reading docs @ {} | hashtags:{} | by year:{}]".format(path, 
+                str(hashtags_only), str(by_year)))        
         for i,l in enumerate(f):
             try:
                 t = json.loads(l)
@@ -66,13 +58,15 @@ def main(path, output, keyword_filter=None, hashtags_only=False, by_year=False):
             sys.stdout.write("\r > year {}]".format(str(year)))
             sys.stdout.flush()            
             with open(output+str(year), "w") as f:
-                write_tweets(f, tweets, keyword_filter)
+                for tweet in tweets:
+                    f.write("{}\n".format(tweet))
     else:
         with open(output, "w") as f:
             for year, tweets in data.items():
                 sys.stdout.write("\r > year {}]".format(str(year)))
                 sys.stdout.flush()
-                write_tweets(f, tweets, keyword_filter)
+                for tweet in tweets:
+                    f.write("{}\n".format(tweet))
     print()
     
     return data  
@@ -81,8 +75,7 @@ def main(path, output, keyword_filter=None, hashtags_only=False, by_year=False):
 def cmdline_args():
     par = argparse.ArgumentParser(description="parse tweets")
     par.add_argument('-data_path', type=str, required=True, help='input data')
-    par.add_argument('-output', type=str, help='output path')	    
-    par.add_argument('-keyword_filter', "--kw", type=str, help='keyword filter')	    
+    par.add_argument('-output', type=str, help='output path')	        
     par.add_argument('-hashtags', "--ht", action="store_true", help='just hashtags')        
     par.add_argument('-max_docs', type=int, help='max docs to be processed')
     par.add_argument('-by_year', action="store_true", help='parse by year')
@@ -92,5 +85,4 @@ def cmdline_args():
 if __name__ == "__main__":
     
     args = cmdline_args()
-    main(args.data_path, output=args.output, keyword_filter=args.kw, 
-            hashtags_only=args.ht, by_year=args.by_year)
+    main(args.data_path, output=args.output, hashtags_only=args.ht, by_year=args.by_year)
