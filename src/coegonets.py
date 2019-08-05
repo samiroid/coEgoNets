@@ -9,17 +9,17 @@ import pandas as pd
 from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
 from scipy.sparse import dok_matrix
 import sys
-MIN_COOC = 3
-COUNTER_TOKEN = "OCCUR"
+MIN_WORD_LEN = 4
+COUNTER_TOKEN = "[COUNTS]"
 
 class Vocabulary(object):
-    def __init__(self, min_word_len=4):
+    def __init__(self):
         self._V = {}
         self._iV = {}
-        self.min_word_len = min_word_len
+        
     def __len__(self):
-        return self.size()
-    
+        return len(self._V)
+        
     def __getitem__(self, key):
         if isinstance(key,int):
             return self.idx2word(key)
@@ -28,8 +28,8 @@ class Vocabulary(object):
         except KeyError:
             return None
 
-    def doc2idx(self, doc):
-        m = [self.word2idx(w) for w in doc.split() if len(w) > self.min_word_len]
+    def doc2idx(self, doc, min_word_len=1):
+        m = [self.word2idx(w) for w in doc.split() if len(w) > min_word_len]
         return m
 
     def idx2word(self, idx):
@@ -46,15 +46,21 @@ class Vocabulary(object):
             self._V[w] = next_key
             self._iV[next_key] = w
             return next_key
-    
-    def size(self):
-        return len(self._V)
-    
+
     def vocabulary(self):
-        v = [self._iV[i] for i in range(self.size())]
+        v = [self._iV[i] for i in range(len(self._iV))]
         return v
 
-def build_coocurrences(docs):            
+def getDF(C=None, V=None, path=None):
+    assert (C is not None and V is not None) or path is not None, "Please pass path or C and V"
+    if path is not None:
+        with gzip.GzipFile(path, "r") as f:
+            C, V = pickle.load(f)    
+    #build dataframe
+    df = pd.DataFrame(C.toarray(), columns=V, index=V)
+    return df
+
+def build_COOM(docs):            
     K = Counter()
     V = Vocabulary()
     #add a special token to the vocabulary and to each doc to capture occurrences 
@@ -62,7 +68,7 @@ def build_coocurrences(docs):
     total_tokens = 0
     for i,d in enumerate(docs):        
         #convert tokens to indices
-        t = V.doc2idx(d)
+        t = V.doc2idx(d, min_word_len=MIN_WORD_LEN)
         #get unique tokens (indices)
         t = list(set(t))
         total_tokens+=len(t)  
@@ -73,24 +79,25 @@ def build_coocurrences(docs):
         #count co-occurrences
         K.update(coos)
         if i % 501 == 0:
-            sys.stdout.write("\r > processed {}\{} docs | {} tokens".format(i, len(docs), total_tokens))
+            sys.stdout.write("\r > processed {}\{} docs | {} tokens".format(i, len(docs), 
+                            total_tokens))
             sys.stdout.flush()              
-    sys.stdout.write("\r > processed {}\{} docs | {} tokens".format(i, len(docs), total_tokens))
-    sys.stdout.flush()              
+    sys.stdout.write("\r > processed {}\{} docs | {} tokens".format(i, len(docs), 
+                        total_tokens))
+    sys.stdout.flush()   
+    print()
     #initialize co-ocurrence (sparse) matrix        
-    M = dok_matrix((len(V), len(V)), dtype=int)
+    C = dok_matrix((len(V), len(V)), dtype=int)
     #fill in the matrix with co-occurence counts 
     for k, v in K.items():
         word1,word2 = k.split(",")
         word1 = int(word1)
         word2 = int(word2)        
         #symmetric update
-        M[word1,word2] = v
-        M[word2,word1] = v    
-    print("\n > done")
-    #build dataframe
-    C = pd.DataFrame(M.toarray(), columns=V.vocabulary(), index=V.vocabulary())
-    return C
+        C[word1,word2] = v
+        C[word2,word1] = v    
+    print(" > done")
+    return C, V
 
 def read_data(path):    
     with open(path, "r") as f:
@@ -111,10 +118,12 @@ def main(data_path, output_path):
     print("[reading data @ {}]".format(data_path))            
     T = read_data(data_path)        
     print("[building co-occurrence matrix]")
-    C = build_coocurrences(T)         
+    C, V = build_COOM(T)         
+    output_path+=".gz"
     print("[saving @ {}]".format(output_path))            
     #pickle coocurrence matrix
-    C.to_pickle(output_path)
+    with gzip.GzipFile(output_path, "w") as f:
+        pickle.dump([C, V.vocabulary()], f, -1)
 
 if __name__ == "__main__":    
     args = cmdline_args()       

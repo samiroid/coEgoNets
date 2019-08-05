@@ -94,4 +94,3 @@ if __name__ == "__main__":
     args = cmdline_args()
     main(args.data_path, output=args.output, keyword_filter=args.kw, 
             hashtags_only=args.ht, by_year=args.by_year)
-    
