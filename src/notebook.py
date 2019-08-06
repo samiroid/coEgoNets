@@ -41,9 +41,11 @@ def graph(C, words, target_word, top_k_edges=None, random_seed=42, style='bmh'):
 	colors = [x['color'] for x in list(plt.style.library[style]['axes.prop_cycle'])]
 	g = {"nodes":[],
 		"edges":[]}	
+	#remove target word
+	words.remove(target_word)
 	# nodes
 	color_map = {}
-	for i,w in enumerate(words):
+	for i,w in enumerate(words):		
 		g["nodes"].append({'label': w,                    
 					'x': random.random(),
 					'y': random.random(),

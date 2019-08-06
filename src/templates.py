@@ -1,5 +1,5 @@
 html = '''
-<div id="$container" style="height:500px; position:relative"></div>
+<div id="$container" style="height:600px; position:relative"></div>
 <br>
 <button id="$force_status">Force On</button>
 <script> $js_text </script>
@@ -27,11 +27,12 @@ javascript = '''
           edgeHoverColor: 'node',
           defaultEdgeHoverColor: '#000'} } );
 
-atlas_conf = {worker: true, barnesHutOptimize: false, 
-              startingIterations:1, iterationsPerRender:100,
-              edgeWeightInfluence:1,
+atlas_conf = {worker: true, barnesHutOptimize: true, 
+              startingIterations:1000, iterationsPerRender:500,
+              edgeWeightInfluence:0,
               slowDown:10,
-              scalingRatio:1},
+              gravity:1,
+              scalingRatio:0.001},
 
 s.graph.edges().forEach(function(e) { e.type = 'curve'; });
 // Initialize the dragNodes plugin:
@@ -101,13 +102,16 @@ javascript_old = '''
           labelColor:"node",
           labelSize:"proportional"} );
 
-atlas_conf = {worker: true, barnesHutOptimize: false, 
-              startingIterations:1, iterationsPerRender:100,
-              edgeWeightInfluence:1,
-              slowDown:10,
-              scalingRatio:1},
+atlas_conf = {worker: true, barnesHutOptimize: true, 
+              startingIterations:100, iterationsPerRender:100,
+              edgeWeightInfluence:0,
+              slowDown:1,
+              gravity:0,
+              scalingRatio:0},
 
-s.startForceAtlas2(atlas_conf);
+//atlas_conf = {worker: true,},
+
+s.startForceAtlas2({});
 
 var force = true;
 svg_display = false;
