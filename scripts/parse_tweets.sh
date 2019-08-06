@@ -4,7 +4,7 @@
 # OUTPUT="/Users/samir/Dev/projects/coEgoNets/DATA/txt/wellness"
 
 DATA_PATH="/Users/samir/Dev/projects/coEgoNets/DATA/wellness_hashtag_all.json.gz"
-OUTPUT="/Users/samir/Dev/projects/coEgoNets/DATA/txt/wellness_all"
+OUTPUT="/Users/samir/Dev/projects/coEgoNets/DATA/txt/wellness_all_tmp"
 
-python src/parse_tweets.py --ht -data_path $DATA_PATH -output $OUTPUT
+python src/parse_tweets.py -data_path $DATA_PATH -output $OUTPUT
 

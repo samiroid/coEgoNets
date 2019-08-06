@@ -6,136 +6,176 @@ import random
 from string import Template
 import html
 import uuid
+import src.templates as templates
 
 def top_k(C, k):
-    return C["[COUNTS]"].sort_values(ascending=False)[:k]
+	return C["[COUNTS]"].sort_values(ascending=False)[:k]
 
-def top_k_cooc(C, w, k, normalize=False):
-    #first item is the counter token
-    t = C[w].sort_values(ascending=False)[1:k+1]
-    if normalize:
-        t /= t.sum()
-        t = t.round(3)
-    return t
+def top_k_cooc(C, w, k, normalizer=None):
+	#first item is the counter token
+	t = C[w].sort_values(ascending=False)[1:k+1]
+	if normalizer:
+		t /= normalizer
+		t = t.round(3)
+	return t
 
 def get_coos(C, words):
-    return C.loc[words, words]
+	return C.loc[words, words]
 
-def graph(C, words, style='bmh'):
-    colors = [x['color'] for x in list(plt.style.library[style]['axes.prop_cycle'])]
-    g = {"nodes":[],
-        "edges":[]}
-    random.seed(42)
-    for i,w in enumerate(words):
-        g["nodes"].append({'label': w,                    
-                    'x': random.random(),
-                    'y': random.random(),
-                    'id': words.index(w),
-                    'size': int(C["[COUNTS]"][w]), #node proportional to frequency
-                    'color': colors[i%len(colors)]}) #rotate colors 
-    # nodes
-    for i, (w1, w2) in enumerate(itertools.combinations(words,2)):
-        #co-occurrences between w1 and w2 
-        c = C[w1][w2]
-        if c==0:continue
-        g["edges"].append({'source': words.index(w1),
-                    'target': words.index(w2),
-                    'id': i,
-                    'size': int(c),
-                    'color': '#ccc'})
+def sigmaJSGraph(graph_data):
+	#random container id
+	uid = str(uuid.uuid4())
+	javascript_template = Template(templates.javascript)
+	html_template = Template(templates.html)
+	js_text = javascript_template.substitute({'graph_data': json.dumps(graph_data),
+												'container': "cnt-"+uid,
+												'force_status':"frs-"+uid}
+												)
+	ht = html_template.substitute({'js_text':js_text, 'container': "cnt-"+uid,
+									'force_status':"frs-"+uid})
 
-    return g
+	return ht
 
-def sigmaJSGraph(C, words, style='bmh'):
+def graph(C, words, target_word, top_k_edges=None, random_seed=42, style='bmh'):
+	random.seed(random_seed)
+	colors = [x['color'] for x in list(plt.style.library[style]['axes.prop_cycle'])]
+	g = {"nodes":[],
+		"edges":[]}	
+	# nodes
+	color_map = {}
+	for i,w in enumerate(words):
+		g["nodes"].append({'label': w,                    
+					'x': random.random(),
+					'y': random.random(),
+					'id': words.index(w),
+					'size': int(C[target_word][w]), #node proportional to cooc with target
+					'color': colors[i%len(colors)]}) #rotate colors 
+		color_map[w] = colors[i%len(colors)]
+	tmp_edges = {}
+	for i, (w1, w2) in enumerate(itertools.combinations(words,2)):
+		#co-occurrences between w1 and w2 
+		c = int(C[w1][w2])
+		if c==0:continue
+		key = "{},{}".format(w1,w2)
+		tmp_edges[key] = c
+	
+	sorted_edges = sorted(tmp_edges.items(), key=lambda kv: kv[1])	
+	#get the top k edges
+	if top_k_edges:		
+		sorted_edges.reverse()
+		edges = sorted_edges[:top_k_edges]
+	else:
+		edges = sorted_edges
+	# import pdb; pdb.set_trace()
+	for i, (w, v) in enumerate(edges):
+		w1,w2 = w.split(",")      
+		g["edges"].append({'source': words.index(w1),
+					'target': words.index(w2),
+					'id': i,
+					'size': v,
+					'color': '#ccc',
+					'type': 'curve',
+					'hover_color': color_map[w1]})
 
-    graph_data = graph(C, words, style)
-    html_container_id = "graph-"+str(uuid.uuid4())
+	return g
+
+
+
+
+
+# def graph(C, words, target_word, style='bmh'):
+#     colors = [x['color'] for x in list(plt.style.library[style]['axes.prop_cycle'])]
+#     g = {"nodes":[],
+#         "edges":[]}
+#     random.seed(42)
+#     for i,w in enumerate(words):
+#         g["nodes"].append({'label': w,                    
+#                     'x': random.random(),
+#                     'y': random.random(),
+#                     'id': words.index(w),
+#                     'size': int(C[target_word][w]), #node proportional to frequency
+#                     'color': colors[i%len(colors)]}) #rotate colors 
+#     # nodes
+#     for i, (w1, w2) in enumerate(itertools.combinations(words,2)):
+#         #co-occurrences between w1 and w2 
+#         c = C[w1][w2]
+#         if c==0:continue
+#         g["edges"].append({'source': words.index(w1),
+#                     'target': words.index(w2),
+#                     'id': i,
+#                     'size': int(c),
+#                     'color': '#ccc'})
     
-    js_text_template = Template('''
-    
-    g = $graph_data
+#     print(len(g["edges"]))
+#     return g
 
-    // Instantiate sigma:
-    s = new sigma({graph: g,
-            container: "$container",
-            settings: {
-            minEdgeSize: 1,
-            maxEdgeSize: 10,
-            minNodeSize: 10,
-            maxNodeSize: 30,
-            edgeColor: "#ccc",
-            labelColor:"node",
-            labelSize:"proportional"} } );
 
-atlas_conf = {worker: true, barnesHutOptimize: false, 
-                startingIterations:100, iterationsPerRender:2000,
-                edgeWeightInfluence:1,
-                slowDown:10,
-                scalingRatio:1},
-
-s.startForceAtlas2(atlas_conf);
-
-var force = true;
-svg_display = false;
-
-setTimeout( function(){
-     s.stopForceAtlas2();
-force=false;
- }, 8000)
-
-// Listeners
-document.getElementById('layout').onclick = function() {
-  if (!force){
-    s.startForceAtlas2(atlas_conf);
-    btn = document.getElementById('layout')
-    btn.innerHTML = "Stop Force"
-    btn.style.backgroundColor = "#B22222"
-    
-    }
-  else{
-    s.stopForceAtlas2();
-    btn = document.getElementById('layout')
-    btn.innerHTML = "Start Force"
-    btn.style.backgroundColor = "#228B22"
-    
-    }
-  force = !force;
+# def graph(C, words, style='bmh'):
+#     colors = [x['color'] for x in list(plt.style.library[style]['axes.prop_cycle'])]
+#     g = {"nodes":[],
+#         "edges":[]}
+#     random.seed(42)
+#     for i,w in enumerate(words):
+#         g["nodes"].append({'label': w,                    
+#                     'x': random.random(),
+#                     'y': random.random(),
+#                     'id': words.index(w),
+#                     'size': int(C["[COUNTS]"][w]), #node proportional to frequency
+#                     'color': colors[i%len(colors)]}) #rotate colors 
+#     # nodes
+#     for i, (w1, w2) in enumerate(itertools.combinations(words,2)):
+#         #co-occurrences between w1 and w2 
+#         c = C[w1][w2]
+#         if c==0:continue
+#         g["edges"].append({'source': words.index(w1),
+#                     'target': words.index(w2),
+#                     'id': i,
+#                     'size': int(c),
+#                     'color': '#ccc'})
   
-};
+#     print(len(g["edges"]))
+#     return g
 
-document.getElementById('export').onclick = function() {
-  s.renderers[0].snapshot({format: 'jpg', background: 'white', filename: 'my-graph.png', download: true, labels: true})
-};
+# def k_connected_graph(C, words, k, style='bmh'):
+#   colors = [x['color'] for x in list(plt.style.library[style]['axes.prop_cycle'])]
+#   g = {"nodes":[],
+#       "edges":[]}
+#   random.seed(42)
+#   for i,w in enumerate(words):
+#       g["nodes"].append({'label': w,                    
+#                   'x': random.random(),
+#                   'y': random.random(),
+#                   'id': words.index(w),
+#                   'size': int(C["[COUNTS]"][w]), #node proportional to frequency
+#                   'color': colors[i%len(colors)]}) #rotate colors 
+#   # nodes
+#   tmp_edges = {}
+#   for i, (w1, w2) in enumerate(itertools.combinations(words,2)):
+#       #co-occurrences between w1 and w2 
+#       c = int(C[w1][w2])
+#       if c==0:continue
+#       key = "{},{}".format(w1,w2)
+#       tmp_edges[key] = c
+#   sorted_edges = sorted(tmp_edges.items(), key=lambda kv: kv[1])
+#   sorted_edges.reverse()
+#   print(len(sorted_edges))
+#   for i, (w, v) in enumerate(sorted_edges[:k]):
+#     w1,w2 = w.split(",")      
+#     g["edges"].append({'source': words.index(w1),
+#                 'target': words.index(w2),
+#                 'id': i,
+#                 'size': v,
+#                 'color': '#ccc'})
 
-document.getElementById('svg').onclick = function() {
-    svg_display = !svg_display
-    if(svg_display){
-        s = s.toSVG({download: false, labels:true, filename: 'mygraph.svg', size: 50})
-        document.getElementById("svg_text").innerHTML = "*** " + s + " ***"
-        alert(s);
-        document.getElementById("$container").style.display = "none";
-        document.getElementById('svg').innerHTML = "plot"
-    }else{
-        document.getElementById("svg_text").innerHTML = "";
-        document.getElementById("$container").style.display = "block";
-        document.getElementById('svg').innerHTML = "snapshot"
-    }
-};
+#   return g
 
-''')
-
-    html_template = Template('''
-<p id="svg_text"></p>
-<br>
-<div id="$container" style="height:500px; position:relative"></div>
-<button id="layout" type="button" style=" background-color:#B22222 border-radius: 4px;"> stop force</button>
-<button id="svg" type="SVG" style="border-radius: 4px;">snapshot</button>
-<button id="export" type="PNG" style="border-radius: 4px;">export</button>
-<script> $js_text </script>
-''')
-    js_text = js_text_template.substitute({'graph_data': json.dumps(graph_data),
-                                'container': html_container_id})
-    ht = html_template.substitute({'js_text':js_text,
-                                    'container': html_container_id})
-    
-    return ht
+  # for i, (w1, w2) in enumerate(itertools.combinations(words,2)):
+  #     #co-occurrences between w1 and w2 
+  #     c = C[w1][w2]
+  #     if c==0:continue
+  #     g["edges"].append({'source': words.index(w1),
+  #                 'target': words.index(w2),
+  #                 'id': i,
+  #                 'size': int(c),
+  #                 'color': '#ccc'})
+  

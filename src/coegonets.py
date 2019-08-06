@@ -99,10 +99,14 @@ def build_COOM(docs):
     print(" > done")
     return C, V.vocabulary()
 
-def read_data(path):    
+def read_data(path, filter_any=None, filter_all=None):    
     with open(path, "r") as f:
-        data = [line.strip("\n") for line in f]            
-    return data
+        docs = [line.strip("\n") for line in f]            
+    if filter_any:
+        return keyword_filter_any(docs, filter_any)
+    if filter_all:
+        return keyword_filter_all(docs, filter_all)
+    return docs
 
 def keyword_filter_all(docs, filters):
     filtered = filter(lambda doc: all(w in doc.split() for w in filters), docs)
