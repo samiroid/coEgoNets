@@ -62,7 +62,7 @@ def getDF(C=None, V=None, path=None):
 
 def build_COOM(docs):            
     K = Counter()
-    V = Vocabulary()
+    V = Vocabulary()    
     #add a special token to the vocabulary and to each doc to capture occurrences 
     ctr_idx = V.word2idx(COUNTER_TOKEN)
     total_tokens = 0
@@ -70,12 +70,14 @@ def build_COOM(docs):
         #convert tokens to indices
         t = V.doc2idx(d, min_word_len=MIN_WORD_LEN)
         #get unique tokens (indices)
-        t = list(set(t))
+        t = list(set(t))        
         total_tokens+=len(t)  
         #prepend counter token
         t = [ctr_idx] + t
+        #sort elements so that they always appear in the same order
+        t = sorted(t)        
         #iterate over token idx combinations        
-        coos = ["{},{}".format(co[0],co[1]) for co in itertools.combinations(t,2) ]
+        coos = ["{},{}".format(co[0],co[1]) for co in itertools.combinations(t,2) ]        
         #count co-occurrences
         K.update(coos)
         if i % 501 == 0:

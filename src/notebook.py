@@ -47,7 +47,7 @@ def graph(C, words, target_word, top_k_edges=None, random_seed=42, style='bmh'):
 		g["nodes"].append({'label': w,                    
 					'x': random.random(),
 					'y': random.random(),
-					'id': words.index(w),
+					'id': str(words.index(w)),
 					'size': int(C[target_word][w]), #node proportional to cooc with target
 					'color': colors[i%len(colors)]}) #rotate colors 
 		color_map[w] = colors[i%len(colors)]
@@ -69,12 +69,13 @@ def graph(C, words, target_word, top_k_edges=None, random_seed=42, style='bmh'):
 	# import pdb; pdb.set_trace()
 	for i, (w, v) in enumerate(edges):
 		w1,w2 = w.split(",")      
-		g["edges"].append({'source': words.index(w1),
-					'target': words.index(w2),
+		g["edges"].append({'source': str(words.index(w1)),
+					'target': str(words.index(w2)),
 					'id': i,
 					'size': v,
 					'color': '#ccc',
 					'type': 'curve',
+					'label':str(v),
 					'hover_color': color_map[w1]})
 
 	return g
